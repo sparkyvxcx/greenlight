@@ -15,16 +15,60 @@ func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Reques
 		"version":     version,
 	}
 
-	js, err := json.Marshal(data)
+	err := app.writeJSON(w, http.StatusOK, data, nil)
 	if err != nil {
 		app.logger.Println(err)
 		http.Error(w, "The server encountered a problem and could not process your request at the moment", http.StatusInternalServerError)
 	}
+}
 
-	// Append a newline to the JSON data to make it easier to view in terminal.
-	js = append(js, '\n')
+func healthcheckHandlerWithEncoder(w http.ResponseWriter, r *http.Request) {
+	history := struct {
+		v1 string
+		v2 string
+	}{
+		v1: "2021-01-03",
+		v2: "2022-06-28",
+	}
+	data := map[string]interface{}{
+		"status":      "available",
+		"environment": "dev",
+		"version":     version,
+		"history":     history,
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	w.Write([]byte(js))
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+	}
+}
+
+func healthcheckHandlerWithMarshal(w http.ResponseWriter, r *http.Request) {
+	history := struct {
+		v1 string
+		v2 string
+	}{
+		v1: "2021-01-03",
+		v2: "2022-06-28",
+	}
+
+	data := map[string]interface{}{
+		"status":      "available",
+		"environment": "dev",
+		"version":     version,
+		"history":     history,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	js, err := json.Marshal(data)
+	if err != nil {
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
 }
