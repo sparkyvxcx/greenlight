@@ -18,6 +18,14 @@ func BenchmarkMarshal(b *testing.B) {
 	w := httptest.NewRecorder()
 	r := new(http.Request)
 	for n := 0; n < b.N; n++ {
-		healthcheckHandlerWithMarshal(w, r)
+		healthcheckHandlerWithMarshal(w, r, false)
+	}
+}
+
+func BenchmarkMarshalIndent(b *testing.B) {
+	w := httptest.NewRecorder()
+	r := new(http.Request)
+	for n := 0; n < b.N; n++ {
+		healthcheckHandlerWithMarshal(w, r, true)
 	}
 }
