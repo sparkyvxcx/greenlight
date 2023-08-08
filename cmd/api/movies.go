@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"greenlight.sparkyvxcx.co/internal/data"
 	"greenlight.sparkyvxcx.co/internal/validator"
@@ -41,7 +40,24 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	fmt.Fprintf(w, "%+v\n", input)
+	// fmt.Fprintf(w, "%+v\n", input)
+	err = app.models.Movies.Insert(movie)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// When sending a HTTP response, we want to include a Location header to let the client know
+	// which URL they can find the newly-created resource at. We make an empty http.Header map and
+	// then use the Set() method to add a new Location header, intepolating the system-generated ID
+	// for the new movie in the URL.
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/movies/%d", movie.ID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelop{"movie": movie}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,16 +67,20 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	movie := data.Movie{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Title:     "Casablanca",
-		Runtime:   102,
-		Genres:    []string{"drama", "romance", "war"},
-		Version:   1,
-	}
+	// movie := data.Movie{
+	// 	ID:        id,
+	// 	CreatedAt: time.Now(),
+	// 	Title:     "Casablanca",
+	// 	Runtime:   102,
+	// 	Genres:    []string{"drama", "romance", "war"},
+	// 	Version:   1,
+	// }
 
 	// fmt.Fprintf(w, "Show the details of movie %d\n", id)
+	movie, err := app.models.Movies.Get(id)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 
 	err = app.writeJSON(w, http.StatusOK, envelop{"movie": movie}, nil)
 	if err != nil {
