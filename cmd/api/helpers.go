@@ -14,8 +14,8 @@ import (
 	"greenlight.sparkyvxcx.co/internal/validator"
 )
 
-// envelop to wrap the movei JSON data in a parent JSON object
-type envelop map[string]interface{}
+// envelope to wrap the movei JSON data in a parent JSON object
+type envelope map[string]interface{}
 
 // Retrieve the "id" URL parameter from the current request context, then convert it to an integer and return it.
 func (app *application) readIDParam(r *http.Request) (int64, error) {
@@ -29,7 +29,7 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	return id, nil
 }
 
-func (app *application) writeJSON(w http.ResponseWriter, status int, data envelop, headers http.Header) error {
+func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	js, err := json.Marshal(data)
 	if err != nil {
 		return err

@@ -157,6 +157,53 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	query := `SELECT id, created_at, title, year, runtime, genres, version FROM movies ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Use QueryContext() to execute the query. This returns a sql.Rows resultset containing the result.
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// Defer a call to rows.Close() to ensure that the resultset is closed before GetAll() returns.
+	defer rows.Close()
+
+	// Initialize an empty slice to hold the movie data
+	movies := []*Movie{}
+
+	// Use rows.Next to iterate through the rows in the resultset.
+	for rows.Next() {
+		var movie Movie
+
+		err := rows.Scan(
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		movies = append(movies, &movie)
+
+		// When the rows.Next() loop was finished, call rows.Err() to retrieve any error that was encountered
+		// during the iteration.
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
+
+		return movies, nil
+	}
+	return nil, nil
+}
+
 type MockMovieModel struct{}
 
 func (m MockMovieModel) Insert(movie *Movie) error {
@@ -173,4 +220,8 @@ func (m MockMovieModel) Update(movie *Movie) error {
 
 func (m MockMovieModel) Delete(id int64) error {
 	return nil
+}
+
+func (m MockMovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	return nil, nil
 }

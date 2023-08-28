@@ -9,7 +9,7 @@ func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Reques
 	// js := `{"status": "available", "environment": %q, "version": %q}`
 	// js = fmt.Sprintf(js, app.config.env, version)
 
-	env := envelop{
+	env := envelope{
 		"status": "available",
 		"system_info": map[string]string{
 			"environment": app.config.env,
