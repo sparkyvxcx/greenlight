@@ -40,16 +40,25 @@ type Logger struct {
 	mux      sync.Mutex
 }
 
+// Return a new logger instance which writes log entries at or above a minimum severity level to a
+// specific output destination.
+func New(out io.Writer, minLevel Level) *Logger {
+	return &Logger{
+		out:      out,
+		minLevel: minLevel,
+	}
+}
+
 func (l *Logger) PrintInfo(message string, properties map[string]string) {
 	l.print(LevelInfo, message, properties)
 }
 
-func (l *Logger) PrintError(message string, properties map[string]string) {
-	l.print(LevelError, message, properties)
+func (l *Logger) PrintError(err error, properties map[string]string) {
+	l.print(LevelError, err.Error(), properties)
 }
 
-func (l *Logger) PrintFatal(message string, properties map[string]string) {
-	l.print(LevelFatal, message, properties)
+func (l *Logger) PrintFatal(err error, properties map[string]string) {
+	l.print(LevelFatal, err.Error(), properties)
 	os.Exit(1)
 }
 
