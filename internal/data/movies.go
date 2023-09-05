@@ -158,8 +158,9 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	query_format := `SELECT id, created_at, title, year, runtime, genres, version
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	query_format := `
+	SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
 	 		FROM movies
 	 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 	 		AND (genres @> $2 OR $2 = '{}')
@@ -175,13 +176,13 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	// Use QueryContext() to execute the query. This returns a sql.Rows resultset containing the result.
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	// Defer a call to rows.Close() to ensure that the resultset is closed before GetAll() returns.
 	defer rows.Close()
 
-	// Initialize an empty slice to hold the movie data
+	totalRecords := 0
 	movies := []*Movie{}
 
 	// Use rows.Next to iterate through the rows in the resultset.
@@ -189,6 +190,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 		var movie Movie
 
 		err := rows.Scan(
+			&totalRecords,
 			&movie.ID,
 			&movie.CreatedAt,
 			&movie.Title,
@@ -198,17 +200,19 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 			&movie.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		movies = append(movies, &movie)
 
 		// When the rows.Next() loop was finished, call rows.Err() to retrieve any error that was encountered
 		// during the iteration.
 		if err = rows.Err(); err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 	}
-	return movies, nil
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return movies, metadata, nil
 }
 
 type MockMovieModel struct{}
@@ -229,6 +233,6 @@ func (m MockMovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MockMovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	return nil, nil
+func (m MockMovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	return nil, Metadata{}, nil
 }
