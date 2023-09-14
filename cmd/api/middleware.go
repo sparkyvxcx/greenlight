@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"golang.org/x/time/rate"
 )
@@ -29,10 +30,34 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 }
 
 func (app *application) rateLimit(next http.Handler) http.Handler {
+	type client struct {
+		limiter  *rate.Limiter
+		lastSeen time.Time
+	}
+
 	var (
 		mux     sync.Mutex
-		clients = make(map[string]*rate.Limiter)
+		clients = make(map[string]*client)
 	)
+
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+
+			// Lock the mutex to prevent any rate limiter checks from happening while the
+			// cleanup is taking place.
+			mux.Lock()
+
+			// Loop through all clients.
+			for ip, client := range clients {
+				if time.Since(client.lastSeen) > 3*time.Minute {
+					delete(clients, ip)
+				}
+			}
+
+			mux.Unlock()
+		}
+	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Extract the client's IP address from the request.
@@ -50,10 +75,10 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		if _, found := clients[ip]; !found {
 			// Initialize a new rate limiter which allows an average of 2 requests per second,
 			// with maximum of 4 requests in a single 'burst'.
-			clients[ip] = rate.NewLimiter(2, 4)
+			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
 		}
 
-		if !clients[ip].Allow() {
+		if !clients[ip].limiter.Allow() {
 			mux.Unlock()
 			app.rateLimitExceededResponse(w, r)
 			return
