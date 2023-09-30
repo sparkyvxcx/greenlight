@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"greenlight.sparkyvxcx.co/internal/data"
@@ -55,14 +56,24 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Call the Send() method on mailer, passing user's email address, template file, user struct.
-	err = app.mailer.Send(user.Email, "user_welcome.tmpl", user)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
+	go func() {
+		// Run a deferred function which uses recover() to catch any panic and log error message.
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+		// Call the Send() method on mailer, passing user's email address, template file, user struct.
+		err = app.mailer.Send(user.Email, "user_welcome.tmpl", user)
+		if err != nil {
+			app.logger.PrintError(err, nil)
+		}
+	}()
+
+	// Send the client a 202 Accepted status code to indicates that the request has been accpeted for
+	// processing, but the processing has not been completed.
+	err = app.writeJSON(w, http.StatusAccepted, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
