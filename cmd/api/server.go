@@ -52,7 +52,15 @@ func (app *application) serve() error {
 		// of a problem closing the listeners, or because the shutdown didn't complete before
 		// the listeners, or because the shutdown didn't complete before the 5-second context
 		// deadline is hit). Relay this return value to the shutdownError channel.
-		shutdownError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+
+		app.logger.PrintInfo("completing background tasks", map[string]string{"addr": srv.Addr})
+
+		app.wg.Wait()
+		shutdownError <- nil
 	}()
 
 	app.logger.PrintInfo("starting app server", map[string]string{"addr": srv.Addr, "env": app.config.env})
