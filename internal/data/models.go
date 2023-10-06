@@ -23,12 +23,17 @@ type Models struct {
 		GetByEmail(email string) (*User, error)
 		Update(user *User) error
 	}
+	Tokens interface {
+		Insert(token *Token) error
+		DeleteAllForUser(scope string, userID int64) error
+	}
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Movies: MovieModel{DB: db},
 		Users:  UserModel{DB: db},
+		Tokens: TokenModel{DB: db},
 	}
 }
 
