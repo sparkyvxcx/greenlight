@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
@@ -24,6 +25,7 @@ type Models struct {
 		Update(user *User) error
 	}
 	Tokens interface {
+		New(userID int64, ttl time.Duration, scope string) (*Token, error)
 		Insert(token *Token) error
 		DeleteAllForUser(scope string, userID int64) error
 	}
