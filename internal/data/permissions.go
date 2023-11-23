@@ -9,7 +9,7 @@ import (
 type Permissions []string
 
 // Add helper method to check whether the Permissions slice contains s specific permission code.
-func (p Permissions) include(code string) bool {
+func (p Permissions) Include(code string) bool {
 	for i := range p {
 		if code == p[i] {
 			return true
