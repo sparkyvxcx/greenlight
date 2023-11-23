@@ -19,6 +19,9 @@ type Models struct {
 		Delete(id int64) error
 		GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error)
 	}
+	Permissions interface {
+		GetAllForUser(userID int64) (Permissions, error)
+	}
 	Users interface {
 		Insert(user *User) error
 		GetByEmail(email string) (*User, error)
@@ -34,9 +37,10 @@ type Models struct {
 
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Movies: MovieModel{DB: db},
-		Users:  UserModel{DB: db},
-		Tokens: TokenModel{DB: db},
+		Movies:      MovieModel{DB: db},
+		Permissions: PermissionModle{DB: db},
+		Users:       UserModel{DB: db},
+		Tokens:      TokenModel{DB: db},
 	}
 }
 
