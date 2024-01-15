@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -34,6 +35,9 @@ func (app *application) routes() http.Handler {
 
 	// Endpoints related to token
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+
+	// Endpoints related to metric/debug to the expvar handler
+	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 
 	// Wrap the router with the panic recovery middleware
 	// return app.recoverPanic(router)
