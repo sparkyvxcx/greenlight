@@ -118,6 +118,15 @@ func main() {
 		return time.Now().Unix()
 	}))
 
+	// TODO: The number of ‘active’ in-flight requests:
+	// total_requests_received - total_responses_sent
+
+	// TODO: The average number of requests received per second (between calls A and B to the GET /debug/vars endpoint):
+	// (total_requests_received_B - total_requests_received_A) / (timestamp_B - timestamp_A)
+
+	// TODO: The average processing time per request (between calls A and B to the GET /debug/vars endpoint):
+	// (total_processing_time_μs_B - total_processing_time_μs_A) / (total_requests_received_B - total_requests_received_A)
+
 	app := &application{
 		config: cfg,
 		logger: logger,
