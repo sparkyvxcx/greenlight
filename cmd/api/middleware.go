@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
 	"greenlight.sparkyvxcx.co/internal/data"
 	"greenlight.sparkyvxcx.co/internal/validator"
+
+	"github.com/felixge/httpsnoop"
+	"golang.org/x/time/rate"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -260,20 +263,38 @@ func (app *application) metrics(next http.Handler) http.Handler {
 	totalRequestsReceived := expvar.NewInt("total_requests_received")
 	totalResponseSent := expvar.NewInt("total_responses_sent")
 	totalProcessingTimeMicroseconds := expvar.NewInt("total_processing_time_μs")
+	totalResponseSentByStatus := expvar.NewMap("total_responses_sent_by_status")
+
+	// TODO: The number of ‘active’ in-flight requests:
+	// total_requests_received - total_responses_sent
+	totalActiveRequests := expvar.NewInt("total_active_requests")
+
+	// TODO: The average number of requests received per second (between calls A and B to the GET /debug/vars endpoint):
+	// (total_requests_received_B - total_requests_received_A) / (timestamp_B - timestamp_A)
+
+	// TODO: The average processing time per request (between calls A and B to the GET /debug/vars endpoint):
+	// (total_processing_time_μs_B - total_processing_time_μs_A) / (total_requests_received_B - total_requests_received_A)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
 		// Use the Add() method to increment the counter by 1.
 		totalRequestsReceived.Add(1)
 
 		// Call the next handler.
-		next.ServeHTTP(w, r)
+		// next.ServeHTTP(w, r)
+
+		// Call the httpsnoop.CaptureMetrics() function, passing in the next handler.
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
 
 		// Increment responses sent counter
 		totalResponseSent.Add(1)
 
-		duration := time.Now().Sub(start).Microseconds()
-		totalProcessingTimeMicroseconds.Add(duration)
+		// Set active requests to number of received minus number of sent
+		totalActiveRequests.Set(totalRequestsReceived.Value() - totalResponseSent.Value())
+
+		// Get the request processing time from httpsnoop.
+		totalProcessingTimeMicroseconds.Add(metrics.Duration.Microseconds())
+
+		// Use the Add() method to increment the count for the given status code by 1.
+		totalResponseSentByStatus.Add(strconv.Itoa(metrics.Code), 1)
 	})
 }
