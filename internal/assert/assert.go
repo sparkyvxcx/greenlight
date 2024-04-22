@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -16,6 +17,14 @@ func NilError(t *testing.T, actual error) {
 	t.Helper()
 
 	if actual != nil {
+		t.Errorf("got: %v; want: nil", actual)
+	}
+}
+
+func Contains(t *testing.T, actual, expected string) {
+	t.Helper()
+
+	if !strings.Contains(actual, expected) {
 		t.Errorf("got: %v; want: nil", actual)
 	}
 }
