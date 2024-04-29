@@ -47,10 +47,7 @@ db/migrations/up: confirm
 
 ## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
-audit:
-	@echo 'Tidying and verifying module dependencies...'
-	go mod tidy
-	go mod verify
+audit: vender
 	@echo 'Formatting code...'
 	go fmt ./...
 	@echo 'Vetting code...'
@@ -58,3 +55,12 @@ audit:
 	staticcheck ./...
 	@echo 'Running tests...'
 	go test -race -vet=off ./...
+
+## vendor: tidy and vendor third-party dependencies
+.PHONY: vendor
+vendor:
+	@echo 'Tidying and verifying module dependencies...'
+	go mod tidy
+	go mod verify
+	@echo 'Vendoring third-party dependencies...'
+	go mod vendor
