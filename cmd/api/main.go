@@ -19,10 +19,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const version = "0.1.0"
-
 // Create a buildTime variable to hold the executable binary build time.
-var buildTime string
+var (
+	buildTime string
+	version   string
+)
 
 type config struct {
 	port int
